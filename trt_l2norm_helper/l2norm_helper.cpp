@@ -29,6 +29,7 @@ L2NormHelper::L2NormHelper(const void* buffer, size_t length)
     C = read<int>(d);
     H = read<int>(d);
     W = read<int>(d);
+    mDataType = read<DataType>(d);
     ASSERT(d == a + length);
 }
 
@@ -58,19 +59,10 @@ size_t L2NormHelper::getWorkspaceSize(int maxBatchSize) const
     return 0;
 }
 
-int L2NormHelper::enqueue(int batchSize, const void* const* inputs, void** outputs, void* workspace, cudaStream_t stream)
-{
-    const void* inputData = inputs[0];
-    void* outputData = outputs[0];
-    bool status = executeInference(stream, op_type, eps, batchSize, C, H, W, inputData, outputData);
-    ASSERT(status == 0);
-    return 0;
-}
-
 size_t L2NormHelper::getSerializationSize() const
 {
-    // C, H, W, eps, op_type
-    return sizeof(int) * 3 + sizeof(float) + sizeof(int);
+    // C, H, W, eps, op_type, mDataType
+    return sizeof(int) * 3 + sizeof(float) + sizeof(int) + sizeof(mDataType);
 }
 
 void L2NormHelper::serialize(void* buffer) const
@@ -81,13 +73,15 @@ void L2NormHelper::serialize(void* buffer) const
     write(d, C);
     write(d, H);
     write(d, W);
+    write(d, mDataType);
 
     ASSERT(d == a + getSerializationSize());
 }
 
 bool L2NormHelper::supportsFormat(DataType type, PluginFormat format) const
 {
-    return (type == DataType::kFLOAT && format == PluginFormat::kNCHW);
+    return ((type == DataType::kFLOAT || type == DataType::kHALF) &&
+            (format == PluginFormat::kNCHW));
 }
 
 // Set plugin namespace
@@ -106,7 +100,9 @@ void L2NormHelper::configureWithFormat(
     const Dims* inputDims, int nbInputs, const Dims* outputDims, int nbOutputs,
     DataType type, PluginFormat format, int maxBatchSize)
 {
-    ASSERT(type == DataType::kFLOAT && format == PluginFormat::kNCHW);
+    ASSERT(format == PluginFormat::kNCHW);
+    ASSERT(type == DataType::kFLOAT || type == DataType::kHALF);
+    mDataType = type;
     C = inputDims[0].d[0];
     H = inputDims[0].d[1];
     W = inputDims[0].d[2];
@@ -147,7 +143,7 @@ IPluginV2* L2NormHelper::clone() const
 // PluginCreator
 L2NormHelperPluginCreator::L2NormHelperPluginCreator()
 {
-    mPluginAttributes.emplace_back(PluginField("op_type", nullptr, PluginFieldType::kFLOAT32, 1));
+    mPluginAttributes.emplace_back(PluginField("op_type", nullptr, PluginFieldType::kINT32, 1));
     mPluginAttributes.emplace_back(PluginField("eps", nullptr, PluginFieldType::kFLOAT32, 1));
 
     mFC.nbFields = mPluginAttributes.size();
