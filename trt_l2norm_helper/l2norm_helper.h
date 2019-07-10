@@ -1,7 +1,8 @@
-#ifndef TRT_L2NORM_PLUGIN_H
-#define TRT_L2NORM_PLUGIN_H
+#ifndef TRT_L2NORM_HELPER_PLUGIN_H
+#define TRT_L2NORM_HELPER_PLUGIN_H
 #include "NvInferPlugin.h"
 #include <cuda_runtime.h>
+#include <cuda_fp16.h>
 #include <string>
 #include <vector>
 
@@ -77,6 +78,7 @@ private:
     int C, H, W;
     int op_type;
     float eps = 1e-12;
+    DataType mDataType{DataType::kHALF};
     const char* mPluginNamespace;
 };
 
@@ -111,10 +113,6 @@ protected:
     string mNamespace;
 };
 
-// CUDA kernel function
-bool executeInference(cudaStream_t stream, int op_type, float eps, int batch_size,
-                      int C, int H, int W, const void* inputData, void* outputData);
-
 // Write values into buffer
 template <typename T>
 void write(char*& buffer, const T& val)
@@ -134,4 +132,4 @@ T read(const char*& buffer)
 
 REGISTER_TENSORRT_PLUGIN(L2NormHelperPluginCreator);
 
-#endif // TRT_L2NORM_PLUGIN_H
+#endif // TRT_L2NORM_HELPER_PLUGIN_H

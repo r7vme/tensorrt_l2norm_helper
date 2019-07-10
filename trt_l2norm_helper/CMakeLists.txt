@@ -39,3 +39,9 @@ target_link_libraries(trt_l2norm_helper
   ${TENSORRT_LIBRARY}
 )
 target_compile_features(trt_l2norm_helper PUBLIC cxx_std_11)
+# TODO: I did not found a proper way to autoselect cuda compute capability
+# with cmake 3.10. Set 7.2 for xavier. Otherwise breaks fp16 functions.
+target_compile_options(trt_l2norm_helper
+  PRIVATE
+  $<$<COMPILE_LANGUAGE:CUDA>:-gencode arch=compute_72,code=sm_72>
+)
