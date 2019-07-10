@@ -34,7 +34,7 @@ int main()
   // USER DEFINED VALUES
   string uffFile="sample.uff";
   string engineFile="sample.engine";
-  DataType dtype = DataType::kFLOAT;
+  DataType dtype = DataType::kHALF;
   parser->registerInput("input_1", DimsCHW(3, 224, 224), UffInputOrder::kNCHW);
   parser->registerOutput("orientation/l2_normalize");
   parser->registerOutput("dimension/LeakyRelu");
@@ -57,6 +57,8 @@ int main()
   }
   builder->setMaxBatchSize(1);
   builder->setMaxWorkspaceSize(1<<30);
+  // strict will force selected datatype, even when another was faster
+  //builder->setStrictTypeConstraints(true);
   // Disable DLA, because many layers are still not supported
   // and this causes additional latency.
   //builder->allowGPUFallback(true);
